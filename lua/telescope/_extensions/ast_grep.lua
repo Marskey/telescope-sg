@@ -1,7 +1,7 @@
 local pickers = require "telescope.pickers"
 local finders = require "telescope.finders"
 local conf = require("telescope.config").values
-local make_entry = require "telescope.make_entry"
+local utils = require "telescope.utils"
 
 local Path = require "plenary.path"
 local flatten = vim.tbl_flatten
@@ -33,24 +33,128 @@ end
 local M = {}
 
 ---@class setup_opts
+---@field command table? command to run
 ---@field search_dirs table? list of directories to search in
 ---@field grep_open_files boolean to restrict search to open files
 ---@field lang string? code language to filter on
 ---@field cwd string? current working directory
 ---@field entry_maker function? function to create entry
----@field json_output boolean output in json format(not implemented yet, wait ast-grep support one line json output)
 local setup_opts = {}
 
-M.setup = function (opts)
+M.setup = function(opts)
     setup_opts = vim.tbl_deep_extend("force", setup_opts, opts)
+end
+
+local lookup_keys = {
+    value = 1,
+    ordinal = 1,
+}
+
+local handle_entry_index = function(opts, t, k)
+    local override = ((opts or {}).entry_index or {})[k]
+    if not override then
+        return
+    end
+
+    local val, save = override(t, opts)
+    if save then
+        rawset(t, k, val)
+    end
+    return val
+end
+
+M.gen_from_json = function(opts)
+    opts = opts or {}
+    local cwd = vim.fn.expand(opts.cwd or vim.loop.cwd() or "")
+
+    local mt_vimgrep_entry
+
+    local disable_devicons = opts.disable_devicons
+    local disable_coordinates = opts.disable_coordinates
+
+    local display_string = "%s%s%s"
+
+    mt_vimgrep_entry = {
+        cwd = vim.fn.expand(opts.cwd or vim.loop.cwd()),
+
+        display = function(entry)
+            local display_filename = utils.transform_path(opts, entry.filename)
+
+            local coordinates = ":"
+            if not disable_coordinates then
+                if entry.lnum then
+                    if entry.col then
+                        coordinates = string.format(":%s:%s:", entry.lnum, entry.col)
+                    else
+                        coordinates = string.format(":%s:", entry.lnum)
+                    end
+                end
+            end
+
+            local display, hl_group, icon = utils.transform_devicons(
+                entry.filename,
+                string.format(display_string, display_filename, coordinates, entry.text),
+                disable_devicons
+            )
+
+            if hl_group then
+                return display, { { { 0, #icon }, hl_group } }
+            else
+                return display
+            end
+        end,
+
+        __index = function(t, k)
+            local override = handle_entry_index(opts, t, k)
+            if override then
+                return override
+            end
+
+            local raw = rawget(mt_vimgrep_entry, k)
+            if raw then
+                return raw
+            end
+
+            if k == "path" then
+                return Path:new({ cwd, t.filename }):absolute()
+            end
+
+            if k == "text" then
+                return t.value
+            end
+
+            if k == "ordinal" then
+                local text = t.text
+                return opts.only_sort_text and text or text .. " " .. t.filename
+            end
+
+            return rawget(t, rawget(lookup_keys, k))
+        end,
+    }
+
+    return function(line)
+        local msg = vim.json.decode(line)
+        if msg == nil then
+            return
+        end
+
+        local text = msg.text:gsub("%s+$", "")
+        return setmetatable({
+            value = text,
+            filename = msg.file,
+            lnum = msg.range.start.line + 1,
+            lnend = msg.range['end'].line + 1,
+            col = msg.range.start.column + 1,
+            colend = msg.range['end'].column + 1,
+        }, mt_vimgrep_entry)
+    end
 end
 
 ---@param opts setup_opts
 M.ast_grep = function(opts)
-    local command = {
+    local command = opts.command or {
         "sg",
-        "--heading",
-        "never",
+        "--json=stream",
         "-p",
     }
 
@@ -71,10 +175,6 @@ M.ast_grep = function(opts)
         additional_args[#additional_args + 1] = "-l=" .. opts.lang
     end
 
-    if opts.json_output then
-        additional_args[#additional_args + 1] = "--json"
-    end
-
     local args = flatten { additional_args }
 
     local command_generator = function(prompt)
@@ -93,15 +193,8 @@ M.ast_grep = function(opts)
         return flatten { command, prompt, args, search_list }
     end
 
-    local ast_grepper
-    if not opts.json_output then
-        -- to make parse_without_col
-        opts.__inverted = true
-
-        ast_grepper = finders.new_job(command_generator, opts.entry_maker or make_entry.gen_from_vimgrep(opts), nil,
-            opts.cwd)
-        -- wait ast-grep support one line json output
-    end
+    local ast_grepper = finders.new_job(command_generator, opts.entry_maker or M.gen_from_json(opts), nil,
+        opts.cwd)
 
     pickers
         .new(opts, {
