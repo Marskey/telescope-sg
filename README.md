@@ -2,6 +2,8 @@
 
 Ast-grep picker for telescope.nvim
 
+![](./img/telescope-sg.png)
+
 ## Requires
   `ast-grep` to be installed
 
