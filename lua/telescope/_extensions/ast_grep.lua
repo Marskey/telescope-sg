@@ -45,11 +45,6 @@ M.setup = function(opts)
     setup_opts = vim.tbl_deep_extend("force", setup_opts, opts)
 end
 
-local lookup_keys = {
-    value = 1,
-    ordinal = 1,
-}
-
 local handle_entry_index = function(opts, t, k)
     local override = ((opts or {}).entry_index or {})[k]
     if not override then
@@ -127,8 +122,6 @@ M.gen_from_json = function(opts)
                 local text = t.text
                 return opts.only_sort_text and text or text .. " " .. t.filename
             end
-
-            return rawget(t, rawget(lookup_keys, k))
         end,
     }
 
@@ -138,7 +131,7 @@ M.gen_from_json = function(opts)
             return
         end
 
-        local text = msg.text:gsub("%s+$", "")
+        local text = msg.text:gsub("[\r|\n|\t]", "")
         return setmetatable({
             value = text,
             filename = msg.file,
