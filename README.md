@@ -26,7 +26,7 @@ require('telescope').setup {
                 "-p",
             }, -- must have --json and -p
             grep_open_files = false, -- search in opened files
-            lang = nil, -- string value, sepcify language for ast-grep `nil` for default
+            lang = nil, -- string value, specify language for ast-grep `nil` for default
         }
     }
 }
