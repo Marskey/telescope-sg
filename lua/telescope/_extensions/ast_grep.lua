@@ -204,4 +204,5 @@ return require("telescope").register_extension {
     exports = {
         ast_grep = M.ast_grep,
     },
+    health = require("ast_grep_health").check,
 }
