@@ -155,7 +155,6 @@ M.ast_grep = function(opts)
     vim.tbl_filter(function(x)
         return x ~= "-p" and x~= "--pattern"
     end, command)
-    vim.print(command)
 
     opts = vim.tbl_deep_extend("force", setup_opts, opts or {})
     local search_dirs = opts.search_dirs
