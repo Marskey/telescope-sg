@@ -7,6 +7,8 @@ local Path = require "plenary.path"
 local flatten = vim.tbl_flatten
 local filter = vim.tbl_filter
 
+local is_linux = vim.api.nvim_call_function("has", { "linux" }) == 1
+
 local get_open_filelist = function(grep_open_files, cwd)
     if not grep_open_files then
         return nil
@@ -146,7 +148,7 @@ end
 ---@param opts setup_opts
 M.ast_grep = function(opts)
     local command = opts.command or {
-        "sg",
+        is_linux and "ast-grep" or "sg",
         "--json=stream",
         "-p",
     }
