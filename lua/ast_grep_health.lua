@@ -54,7 +54,7 @@ local check_sg_version = function(version)
 
     return major > major_need
         or (major == major_need and minor > minor_need)
-        or (major == major_need and minor == minor_need and patch > patch_need)
+        or (major == major_need and minor == minor_need and patch >= patch_need)
 end
 
 local M = {}
