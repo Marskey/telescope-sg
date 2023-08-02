@@ -150,8 +150,12 @@ M.ast_grep = function(opts)
     local command = opts.command or {
         is_linux and "ast-grep" or "sg",
         "--json=stream",
-        "-p",
     }
+
+    vim.tbl_filter(function(x)
+        return x ~= "-p" and x~= "--pattern"
+    end, command)
+    vim.print(command)
 
     opts = vim.tbl_deep_extend("force", setup_opts, opts or {})
     local search_dirs = opts.search_dirs
@@ -167,7 +171,8 @@ M.ast_grep = function(opts)
 
     local additional_args = {}
     if opts.lang then
-        additional_args[#additional_args + 1] = "-l=" .. opts.lang
+        additional_args[#additional_args + 1] = "-l"
+        additional_args[#additional_args + 1] = opts.lang
     end
 
     local args = flatten { additional_args }
@@ -185,7 +190,7 @@ M.ast_grep = function(opts)
             search_list = search_dirs
         end
 
-        return flatten { command, prompt, args, search_list }
+        return flatten { command, "-p", prompt, args, search_list }
     end
 
     local ast_grepper = finders.new_job(command_generator, opts.entry_maker or M.gen_from_json(opts), nil,
