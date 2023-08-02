@@ -14,6 +14,9 @@ Inspired by this [PR](https://github.com/nvim-telescope/telescope.nvim/pull/2611
 
 See [ast-grep](https://ast-grep.github.io/)
 
+## Check Health
+  Make sure you call `:checkhealth telescope` after intalling to ensure everything is set up correctly.
+
 ## Configuration
 
 ```lua
