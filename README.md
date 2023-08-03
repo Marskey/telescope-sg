@@ -1,13 +1,18 @@
 # Telescope ast-grep
 
-Ast-grep picker for telescope.nvim
+ast-grep picker for telescope.nvim
 
 Inspired by this [PR](https://github.com/nvim-telescope/telescope.nvim/pull/2611)
 
 ![](./img/telescope-sg.png)
 
 ## Requires
-  `ast-grep` to be installed ( version >= 0.10.0 )
+  `ast-grep` to be installed ( version >= 0.10.0 ). You can install it by the following commands.
+  ```bash
+  npm install --global @ast-grep/cli
+  pip install ast-grep-cli
+  cargo install ast-grep
+  ```
 
 ## What it does
   ast-grep is a AST-based tool to search code by pattern code. Think it as your old-friend grep but it matches AST nodes instead of text. You can write patterns as if you are writing ordinary code. It will match all code that has the same syntactical structure. You can use $ sign + upper case letters as wildcard, e.g. $MATCH, to match any single AST node. Think it as REGEX dot ., except it is not textual.
