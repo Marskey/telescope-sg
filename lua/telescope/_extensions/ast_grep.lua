@@ -201,7 +201,7 @@ M.ast_grep = function(opts)
             prompt_title = "Ast Grep",
             finder = ast_grepper,
             previewer = conf.grep_previewer(opts),
-            sorter = sorters.fuzzy_with_index_bias(opts),
+            sorter = sorters.highlighter_only(opts),
         })
         :find()
 end
