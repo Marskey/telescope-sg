@@ -1,6 +1,7 @@
 local pickers = require "telescope.pickers"
 local finders = require "telescope.finders"
 local conf = require("telescope.config").values
+local sorters = require "telescope.sorters"
 local utils = require "telescope.utils"
 
 local Path = require "plenary.path"
@@ -200,7 +201,7 @@ M.ast_grep = function(opts)
             prompt_title = "Ast Grep",
             finder = ast_grepper,
             previewer = conf.grep_previewer(opts),
-            sorter = conf.generic_sorter(opts),
+            sorter = sorters.fuzzy_with_index_bias(opts),
         })
         :find()
 end
