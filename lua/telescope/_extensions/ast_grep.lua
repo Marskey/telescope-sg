@@ -134,7 +134,8 @@ M.gen_from_json = function(opts)
             return
         end
 
-        local text = msg.text:gsub("[\r|\n|\t]", "")
+        local raw_text = msg.lines and msg.lines or msg.text
+        local text = raw_text:gsub("[\r|\n|\t]", "")
         return setmetatable({
             value = text,
             filename = msg.file,
