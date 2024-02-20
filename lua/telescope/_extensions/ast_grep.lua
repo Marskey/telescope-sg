@@ -3,6 +3,7 @@ local finders = require "telescope.finders"
 local conf = require("telescope.config").values
 local sorters = require "telescope.sorters"
 local utils = require "telescope.utils"
+local entry_display = require "telescope.pickers.entry_display"
 
 local Path = require "plenary.path"
 local flatten = vim.tbl_flatten
@@ -61,6 +62,14 @@ local handle_entry_index = function(opts, t, k)
     return val
 end
 
+local function get_path_and_tail(opts, filename)
+    local bufname_tail = utils.path_tail(filename)
+    local path_without_tail = require("plenary.strings").truncate(filename, #filename - #bufname_tail, "")
+    local path_to_display = utils.transform_path(opts, path_without_tail)
+
+    return bufname_tail, path_to_display
+end
+
 M.gen_from_json = function(opts)
     opts = opts or {}
     local cwd = vim.fn.expand(opts.cwd or vim.loop.cwd() or "")
@@ -70,36 +79,63 @@ M.gen_from_json = function(opts)
     local disable_devicons = opts.disable_devicons
     local disable_coordinates = opts.disable_coordinates
 
-    local display_string = "%s%s%s"
+    local items = {
+        { width = nil },
+        { width = nil },
+        { remaining = true },
+    }
+
+    if not disable_devicons then
+        table.insert(items, 1, { width = nil })
+    end
+
+    local displayer = entry_display.create {
+        separator = " ",
+        items = items,
+    }
 
     mt_vimgrep_entry = {
         cwd = vim.fn.expand(opts.cwd or vim.loop.cwd()),
 
         display = function(entry)
-            local display_filename = utils.transform_path(opts, entry.filename)
+            local tail_raw, path_to_display = get_path_and_tail(opts, entry.filename)
+            local icon, iconhl
+            if not disable_devicons then
+                icon, iconhl = utils.get_devicons(tail_raw)
+            end
 
-            local coordinates = ":"
+            local tail = tail_raw
             if not disable_coordinates then
+                local coordinates = ":"
                 if entry.lnum then
                     if entry.col then
-                        coordinates = string.format(":%s:%s:", entry.lnum, entry.col)
+                        coordinates = string.format(":%s:%s", entry.lnum, entry.col)
                     else
-                        coordinates = string.format(":%s:", entry.lnum)
+                        coordinates = string.format(":%s", entry.lnum)
                     end
                 end
+                tail = tail_raw .. coordinates
             end
 
-            local display, hl_group, icon = utils.transform_devicons(
-                entry.filename,
-                string.format(display_string, display_filename, coordinates, entry.text),
-                disable_devicons
-            )
+            local trimedText = entry.text:gsub("^%s*", "")
+            local offset = #entry.text - #trimedText
 
-            if hl_group then
-                return display, { { { 0, #icon }, hl_group } }
-            else
-                return display
+            local data = {
+                tail,
+                { path_to_display, "TelescopeResultsComment" },
+                { trimedText, function()
+                    local match_hi = "TelescopeMatching"
+                    local highlights = { { { entry.col - 1 - offset, entry.colend - 1 - offset }, match_hi } }
+                    return highlights
+                end
+                }
+            }
+
+            if iconhl then
+                table.insert(data, 1, { icon, iconhl })
             end
+
+            return displayer(data)
         end,
 
         __index = function(t, k)
@@ -134,10 +170,9 @@ M.gen_from_json = function(opts)
             return
         end
 
-        local raw_text = msg.lines and msg.lines or msg.text
-        local text = raw_text:gsub("[\r|\n|\t]", "")
+        local raw_text = msg.lines
         return setmetatable({
-            value = text,
+            value = raw_text,
             filename = msg.file,
             lnum = msg.range.start.line + 1,
             lnend = msg.range['end'].line + 1,
@@ -155,7 +190,7 @@ M.ast_grep = function(opts)
     }
 
     vim.tbl_filter(function(x)
-        return x ~= "-p" and x~= "--pattern"
+        return x ~= "-p" and x ~= "--pattern"
     end, command)
 
     opts = vim.tbl_deep_extend("force", setup_opts, opts or {})
@@ -202,7 +237,7 @@ M.ast_grep = function(opts)
             prompt_title = "Ast Grep",
             finder = ast_grepper,
             previewer = conf.grep_previewer(opts),
-            sorter = sorters.highlighter_only(opts),
+            sorter = sorters.empty(),
         })
         :find()
 end
