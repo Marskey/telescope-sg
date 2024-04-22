@@ -149,6 +149,8 @@ end
 
 ---@param opts setup_opts
 M.ast_grep = function(opts)
+    opts = vim.tbl_deep_extend("force", setup_opts, opts or {})
+
     local command = opts.command or {
         is_linux and "ast-grep" or "sg",
         "--json=stream",
@@ -158,7 +160,6 @@ M.ast_grep = function(opts)
         return x ~= "-p" and x~= "--pattern"
     end, command)
 
-    opts = vim.tbl_deep_extend("force", setup_opts, opts or {})
     local search_dirs = opts.search_dirs
     local grep_open_files = opts.grep_open_files
     opts.cwd = opts.cwd and vim.fn.expand(opts.cwd) or vim.loop.cwd()
