@@ -29,7 +29,7 @@ require('telescope').setup {
     extensions = {
         ast_grep = {
             command = {
-                "sg",
+                "sg", -- For Linux, use `ast-grep` instead of `sg`
                 "--json=stream",
             }, -- must have --json=stream
             grep_open_files = false, -- search in opened files
