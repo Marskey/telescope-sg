@@ -5,7 +5,17 @@ local sorters = require "telescope.sorters"
 local utils = require "telescope.utils"
 
 local Path = require "plenary.path"
-local flatten = vim.tbl_flatten
+local flatten = (function()
+    if vim.fn.has "nvim-0.11" == 1 then
+        return function(t)
+            return vim.iter(t):flatten():totable()
+        end
+    else
+        return function(t)
+            return vim.tbl_flatten(t)
+        end
+    end
+end)()
 local filter = vim.tbl_filter
 
 local is_linux = vim.api.nvim_call_function("has", { "linux" }) == 1
