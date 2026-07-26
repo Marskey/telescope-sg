@@ -161,14 +161,18 @@ end
 M.ast_grep = function(opts)
     opts = vim.tbl_deep_extend("force", setup_opts, opts or {})
 
-    local command = opts.command or {
-        is_linux and "ast-grep" or "sg",
-        "--json=stream",
-    }
+    local command = opts.command
 
-    vim.tbl_filter(function(x)
-        return x ~= "-p" and x~= "--pattern"
-    end, command)
+    if type(command) ~= "function" then
+      command = command or {
+          is_linux and "ast-grep" or "sg",
+          "--json=stream",
+      }
+
+      vim.tbl_filter(function(x)
+          return x ~= "-p" and x~= "--pattern"
+      end, command)
+    end
 
     local search_dirs = opts.search_dirs
     local grep_open_files = opts.grep_open_files
@@ -190,6 +194,10 @@ M.ast_grep = function(opts)
     local args = flatten { additional_args }
 
     local command_generator = function(prompt)
+        if type(opts.command) == "function" then
+          return opts.command(prompt)
+        end
+
         if not prompt or prompt == "" then
             return nil
         end
