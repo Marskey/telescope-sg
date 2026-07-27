@@ -24,6 +24,8 @@ See [ast-grep](https://ast-grep.github.io/)
 
 ## Configuration
 
+Note command can be a function too.
+
 ```lua
 require('telescope').setup {
     extensions = {
@@ -37,6 +39,36 @@ require('telescope').setup {
         }
     }
 }
+```
+
+## Scan
+
+Provide command as a function in init. The function return a table with:
+`{ "ast-grep", "scan", "--inline-rules", <your-rule>, "rule", "--json=stream" }`
+
+```lua
+local caller_rule = [[
+language: csharp
+rule:
+  kind: method_declaration
+  has:
+    field: parameters
+    has:
+      kind: parameter
+      regex: ^REPLACEME$
+]]
+
+opts.command = function(prompt)
+  local rule = caller_rule:gsub("REPLACEME", prompt)
+
+  return {
+    "ast-grep", -- For Linux, use `ast-grep` instead of `sg`
+    "scan",
+    "--inline-rules",
+    rule,
+    "--json=stream",
+  }
+end
 ```
 
 ## Usage
